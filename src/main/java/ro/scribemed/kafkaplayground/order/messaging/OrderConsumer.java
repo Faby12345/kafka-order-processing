@@ -22,6 +22,17 @@ public class OrderConsumer {
         OrderCreatedEvent event = record.value();
 
         log.info(
+                "Attempting order: orderId={}, partition={}, offset={}",
+                event.orderId(),
+                record.partition(),
+                record.offset()
+        );
+
+        if("FAIL".equalsIgnoreCase(event.product())){
+            throw new IllegalStateException("Simulated order processing failure");
+        }
+
+        log.info(
                 "Received order: orderId={}, customerId={}, product={}, " +
                         "quantity={}, totalPrice={}, partition={}, offset={}",
                 event.orderId(),
@@ -32,5 +43,7 @@ public class OrderConsumer {
                 record.partition(),
                 record.offset()
         );
+
+
     }
 }
