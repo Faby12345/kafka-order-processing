@@ -8,10 +8,16 @@ import org.slf4j.LoggerFactory;
 import ro.scribemed.kafkaplayground.order.config.KafkaTopicConfig;
 import ro.scribemed.kafkaplayground.order.event.OrderCreatedEvent;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Component
 public class OrderConsumer {
     private static final Logger log =
             LoggerFactory.getLogger(OrderConsumer.class);
+
+    private final Map<UUID, Integer> attempts = new ConcurrentHashMap<>();
 
 
 
@@ -20,6 +26,7 @@ public class OrderConsumer {
     )
     public void consume(ConsumerRecord<String, OrderCreatedEvent> record){
         OrderCreatedEvent event = record.value();
+        UUID eventId = event.eventId();
 
         log.info(
                 "Attempting order: orderId={}, partition={}, offset={}",
@@ -30,6 +37,21 @@ public class OrderConsumer {
 
         if("FAIL".equalsIgnoreCase(event.product())){
             throw new IllegalStateException("Simulated order processing failure");
+        }
+
+        if("FLAKY".equalsIgnoreCase(event.product())){
+
+            int attempt = attempts.getOrDefault(eventId, 0);
+            attempt++;
+            attempts.put(eventId,attempt);
+
+            if(attempt <= 2){
+                throw new IllegalStateException("Simulate temporary failure");
+            }
+
+            attempts.remove(eventId);
+
+
         }
 
         log.info(
