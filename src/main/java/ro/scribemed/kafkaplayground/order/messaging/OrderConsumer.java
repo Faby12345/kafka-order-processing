@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ro.scribemed.kafkaplayground.order.config.KafkaTopicConfig;
 import ro.scribemed.kafkaplayground.order.event.OrderCreatedEvent;
+import ro.scribemed.kafkaplayground.order.event.OrderEventProcessor;
+
 
 import java.util.Map;
 import java.util.UUID;
@@ -18,8 +20,11 @@ public class OrderConsumer {
             LoggerFactory.getLogger(OrderConsumer.class);
 
     private final Map<UUID, Integer> attempts = new ConcurrentHashMap<>();
+    private final OrderEventProcessor orderEventProcessor;
 
-
+    public OrderConsumer(OrderEventProcessor orderEventProcessor) {
+        this.orderEventProcessor = orderEventProcessor;
+    }
 
     @KafkaListener(
             topics = KafkaTopicConfig.ORDERS_CREATED
@@ -53,6 +58,8 @@ public class OrderConsumer {
 
 
         }
+
+        orderEventProcessor.process(event);
 
         log.info(
                 "Received order: orderId={}, customerId={}, product={}, " +
